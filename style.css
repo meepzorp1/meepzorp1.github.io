@@ -1,0 +1,48 @@
+#chess {
+    width: 560px;
+    height: 560px;
+    border: solid black 1px;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.square {
+    width: 70px;
+    height: 70px;
+    position: relative;
+}
+
+.white {
+    background-color: rgb(175, 175, 175);
+}
+
+.black {
+    background-color: rgb(48, 48, 48);
+}
+.pWhite {
+    fill: white;
+}
+
+.pBlack {
+    fill: black;
+}
+
+.piece {
+    width: 70px;
+    height: 70px;
+    position: relative;
+    z-index: 9;
+}
+
+svg {
+    margin: 10px;
+    width: 50px;
+    height: 50px;
+    position: relative;
+    z-index: -2;
+}
+
+path {
+    position: relative;
+    z-index: -3;
+}
