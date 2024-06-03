@@ -1,25 +1,24 @@
-class AI {
-    constructor() {
+// Simulate computer turn (black)
+const ai = () => {
+    blackMoves++;
+    fillAIBoard();
+    fillAIMoves();
+    console.table(boardArray);
+};
+
+const fillAIBoard = () => {
+    for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+            if (document.querySelector(`[data-row="${i}"][data-column="${j}"]`).firstChild) {
+                if (document.querySelector(`[data-row="${i}"][data-column="${j}"]`).firstChild.dataset.color === 'black') {
+                    boardArray[i][j] = 1;
+                } else boardArray[i][j] = 2;
+            } 
+        }
     }
-    turn() {
-        console.log('ai turn')
+};
 
-//
-// WOW
-//
-// detect start dynamically?
-// only pawns and knights can move at beginning
-// what is better
-//
-//opening plays -
-//  pawns - c4 d4 e4 b3 g3 
-//  knight - f3
-// 
-//  pick at random from above? no move is "best"
-//
-// import board
+const fillAIMoves = () => {
 
 
-        return 'black';
-    }
-}
+};
