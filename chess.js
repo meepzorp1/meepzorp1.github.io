@@ -1,343 +1,192 @@
-const boardDiv = document.getElementById('chess');
-const board = [];
-board[0] = [rook, knight, bishop, queen, king, bishop, knight, rook];
-board[1] = [pawn, pawn, pawn, pawn, pawn, pawn, pawn, pawn];
-board[2] = ['', '', '', '', '', '', '', ''];
-board[3] = ['', '', '', '', '', '', '', ''];
-board[4] = ['', '', '', '', '', '', '', ''];
-board[5] = ['', '', '', '', '', '', '', ''];
-board[6] = [pawn, pawn, pawn, pawn, pawn, pawn, pawn, pawn];
-board[7] = [rook, knight, bishop, queen, king, bishop, knight, rook];
+//Board legend
+// 0: empty square
+// 1: piece
+// 2: moves
 
-class Move {
-    constructor({from, to}) {
-        this.piece = 0;
-        this.from = from;
-        this.to = to;
-        this.color = 0;
-    }
-}
-const move = new Move({from: { row: 0, col: 0, div: 0 }, to: { row: 0, col:0, div: 0 }});
-//                                                                                  turn ai off/on
-//const ai = new AI();
-const ai = 0;
 
-let turn = 'black';
-let blackKing, whiteKing;
+const board = document.querySelector('.board');
+const boardArray = [];
+const blackPieces = [];
+const whitePieces = [];
+let blackMoves = 0;
+let moveFrom, moveTo;
+whoseTurn = 'white';
 
-//           when pieces are dragged from their space back to own they dissappear
-//           pieces same color dissappear
-//
-//           check for check
-//           check for mate
-//                              white player ai!?!?
-//           end game
+// Function to create a piece element
+const createPieceElement = (piece, color, row, col) => {
+    const pieceElement = document.createElement('div');
+    pieceElement.innerHTML = piece;
+    pieceElement.firstChild.dataset.color = color;
+    pieceElement.firstChild.dataset.row = row;
+    pieceElement.firstChild.dataset.column = col; 
+    pieceElement.firstChild.classList.add(color);
+    return pieceElement.firstChild;
+};
 
-// finished
-const dragStart = (e) => { 
-    move.from.row = parseInt(e.target.parentNode.getAttribute('row'));
-    move.from.col = parseInt(e.target.parentNode.getAttribute('col'));
-    move.from.div = e.target;
-    move.piece = e.target.id;
-    move.color = e.target.classList.contains('pBlack')?'black':'white';
+// Fill the board with pieces
+const fillBoard = () => {
+    for (let i = 0; i < 8; i++) {
+        boardArray[i] = [];
+        blackPieces[i] = [];
+        whitePieces[i] = [];
+        for (let j = 0; j < 8; j++) {
+            const square = document.createElement('div');
+            square.classList.add('square');
+            (i + j) % 2 === 0? square.classList.add('board__square--white'): square.classList.add('board__square--black');
+            square.dataset.row = i;
+            square.dataset.column = j;
+            board.appendChild(square);
+            boardArray[i][j] = 0;
+            blackPieces[i][j] = 0;
+            whitePieces[i][j] = 0;
 
-    console.log(move);
-}
-// finished
-const dragOver = (e) => e.preventDefault();
-// refactor
-const dragDrop = (e) => {
-    e.stopPropagation();
-
-    let occupied = e.target.parentElement.id == 'chess'?false:true;
-
-    move.to.div = occupied?e.target.parentElement:e.target;
-    move.to.row = move.to.div.getAttribute('row');
-    move.to.col = move.to.div.getAttribute('col');
-
-    console.log(move.color, turn)
-    if (move.color == turn) {
-        
-        let moveValid = false;
-
-        //create function pieceMove?
-        //have pieceMove call routeClear?
-        switch (move.piece) {
-            case 'pawn': 
-                if (pieceMove(occupied)) moveValid = true;          
-                break;
-            case 'rook':
-                if (pieceMove(occupied) && clearRoute()) moveValid = true;
-                break;
-            case 'knight':
-                if (pieceMove(occupied)) moveValid = true;
-                break;
-            case 'bishop':
-                if (clearRoute() && pieceMove(occupied)) moveValid = true;
-                break;
-            case 'king':
-                if (pieceMove(occupied)) moveValid = true;
-                break;
-            case 'queen':
-                if (clearRoute() && pieceMove(occupied)) moveValid = true;
-                break;
-        }
-
-        if (moveValid) {
-            checkCheck(turn=='black'?blackKing:whiteKing, turn=='black'?whiteKing:blackKing);
-            if (e.target.classList.contains('piece')) {
-                e.target.parentNode.append(move.from.div);
-                e.target.remove();
-            } else {
-                e.target.append(move.from.div);
+            // Place pawns
+            if (i === 1) {
+                const pieceElement = createPieceElement(pawn, 'black', i, j);
+                square.appendChild(pieceElement);
+                blackPieces[i][j] = 1;
+            } else if (i === 6) {
+                const pieceElement = createPieceElement(pawn, 'white', i, j);
+                square.appendChild(pieceElement);
+                whitePieces[i][j] = 1;
             }
-            turn = turn=='black'?'white':'black';
-            if (turn == 'white') {
-                reverseSquares();
-                if (ai) {
-                    turn = ai.turn();
-                    revertSquares();
+
+            // Place rooks, knights, bishops, queens, and kings
+            if (i === 0 || i === 7) {
+                const color = i === 0 ? 'black' : 'white';
+                let piece;
+                switch (j) {
+                    case 0:
+                    case 7:
+                        piece = rook;
+                        break;
+                    case 1:
+                    case 6:
+                        piece = knight;
+                        break;
+                    case 2:
+                    case 5:
+                        piece = bishop;
+                        break;
+                    case 3:
+                        piece = color === 'white' ? queen : king;
+                        break;
+                    case 4:
+                        piece = color === 'white' ? king : queen;
+                        break;
                 }
+                const pieceElement = createPieceElement(piece, color);
+                square.appendChild(pieceElement);
+                boardArray[i][j] = pieceElement;
+                i === 0 ? blackPieces[i][j] = 1 : whitePieces[i][j] = 1;
             }
-            else revertSquares();
         }
     }
-}
-// finished
-const drawBoard = () => {
-    board.forEach((row, i) => {
-        turn = turn == 'black'? 'white': 'black';
-        row.forEach((col, j) => {
-            turn = turn == 'black'? 'white': 'black';
-            let space = document.createElement('div');
-            space.setAttribute('row', i);
-            space.setAttribute('col', j);
-            space.classList.add('square');
-            space.classList.add(turn);
-            space.innerHTML = board[i][j];
-            space.addEventListener('dragstart', dragStart);
-            space.addEventListener('dragover', dragOver);
-            space.addEventListener('drop', dragDrop);
-            boardDiv.appendChild(space);
-            if (i == 0 && j == 4) {
-                blackKing = space;
-            } else if (i == 7 && j == 4) {
-                whiteKing = space;
-            }
+    showPrompt();
+    console.table(boardArray);
+    console.table(blackPieces);
+    console.table(whitePieces);
+};
 
-            
-            space.firstChild?.setAttribute('draggable', 'true');
-            if (i == 0 || i == 1) {
-                space.firstChild.firstChild.classList.add('pBlack');
-                space.firstChild.classList.add('pBlack');
-            }
-            if (i == 6 || i == 7) { 
-                space.firstChild.firstChild.classList.add('pWhite');
-                space.firstChild.classList.add('pWhite');
-            }
-        })
-    })
-}
-// finished
-const pieceMove = (occupied) => {
-    switch (move.piece) {
+// Show prompt when user turn
+const showPrompt = () => {
+    const promptDiv = document.querySelector('.board__prompt');
+    promptDiv.classList.remove('board__prompt__fade');
+    void promptDiv.offsetWidth;
+    promptDiv.textContent = whoseTurn === 'white' ? 'White\'s turn' : 'Black\'s turn';
+    promptDiv.style.visibility = 'visible';
+    promptDiv.classList.add('board__prompt__fade');
+    promptDiv.addEventListener('animationend', () => {
+        promptDiv.classList.remove('board__prompt__fade');
+        promptDiv.style.visibility = 'hidden';
+    }, { once: true });
+};
+
+const getPosition = (pos) => {
+    let x = Number(pos.dataset.column);
+    let y = Number(pos.dataset.row);
+    return [y, x];
+};
+
+const fillMoves = (square) => {
+    let piece = square.firstChild;
+    let pieceType = piece.dataset.type;
+    let pieceColor = piece.dataset.color;
+    let [y, x] = getPosition(square);
+    let moves = [];
+    switch (pieceType) {
         case 'pawn':
-            if (move.to.col == move.from.col) {
-                if (move.to.row - move.from.row == 1) return true
-                else if (move.from.row == 1 && move.to.row - move.from.row == 2 && clearRoute()) return true;
-            } else if ((move.to.col - 1 == move.from.col || move.to.col + 1 == move.from.col) && occupied) return true;
+            let direction = pieceColor === 'white' ? -1 : 1;
+            if (y === 6 && pieceColor === 'white' || y === 1 && pieceColor === 'black') {
+                moves.push([y + 2 * direction, x]);
+            }
+            moves.push([y - 1, x]);
+            if (document.querySelector(`[data-row="${y + direction}"][data-column="${x - 1}"]`).firstChild 
+            && document.querySelector(`[data-row="${y + direction}"][data-column="${x - 1}"]`).firstChild.dataset.color !== pieceColor) {
+                moves.push([y + direction, x - 1]);
+            }
+            if (document.querySelector(`[data-row="${y + direction}"][data-column="${x + 1}"]`).firstChild 
+            && document.querySelector(`[data-row="${y + direction}"][data-column="${x + 1}"]`).firstChild.dataset.color !== pieceColor) {
+                moves.push([y + direction, x + 1]);
+            }
             break;
         case 'rook':
-            if (move.from.col == move.to.col || move.from.row == move.to.row) return true;          
             break;
         case 'knight':
-            if (Math.abs(move.from.col - move.to.col) == 2 && Math.abs(move.from.row - move.to.row) == 1) return true;
-            else if (Math.abs(move.from.col - move.to.col) == 1 && Math.abs(move.from.row - move.to.row) == 2) return true;
             break;
         case 'bishop':
-            if (Math.abs(move.from.col - move.to.col) == Math.abs(move.from.row - move.to.row)) return true;
+            break;
+        case 'queen':
             break;
         case 'king':
-            if (Math.abs(move.from.col - move.to.col) == 1 || Math.abs(move.from.row - move.to.row) == 1) return true;
-            break;
-        case 'queen':
-            if (move.from.row == move.to.row || move.from.col == move.to.col) return true;
-            else if (Math.abs(move.from.row - move.to.row) == Math.abs(move.from.col - move.to.col)) return true;
             break;
     }
-}
-// finished
-const reverseSquares = () => {
-    let i = boardDiv.childNodes.length;
-    let z = Math.sqrt(i);
-    i--;
+    return JSON.stringify(moves);
+};
 
-    boardDiv.childNodes.forEach(square => {
-        square.setAttribute('row', (Math.floor(i / z)));
-        square.setAttribute('col', (i % z));
-        i--;
+const movePiece = (from, to) => {
+    let pieceElement = from.firstChild;
+    if (pieceElement) {
+        to.appendChild(pieceElement);
+    }
+    whoseTurn = whoseTurn === 'white' ? 'black' : 'white';
+};
+
+const handleUserTurn = (event) => {
+    if (whoseTurn === 'black') return;
+    let square = event.target.closest('.square');
+    if (!square) return;
+
+    // If the square has a piece and it's the user's turn
+    if (!moveFrom && square.firstChild && square.firstChild.dataset.color === whoseTurn) {
+        square.firstChild.dataset.moves = fillMoves(square);
+        moveFrom = square;
+        highlight(square);
+    } else {
+        moveTo = square;
+        const moves = JSON.parse(moveFrom.firstChild.dataset.moves);
+        const position = [Number(moveTo.dataset.row), Number(moveTo.dataset.column)];
+        if (moves.some(array => array[0] === position[0] && array[1] === position[1])) {
+            movePiece(moveFrom, moveTo);
+            setTimeout(ai, 300);
+        }
+        moveFrom = null;
+        moveTo = null;
+        clearHighlights();
+        showPrompt();
+    }
+};
+const highlight = (square) => {
+    square.classList.add('board__square--highlight');
+};
+
+const clearHighlights = () => {
+    document.querySelectorAll('.board__square--highlight').forEach(square => {
+        square.classList.remove('board__square--highlight');
     });
 }
-// finsished
-const revertSquares = () => {
-    let i = boardDiv.childNodes.length;
-    let z = Math.sqrt(i);
 
-    while (i) {
-        i--;
-        boardDiv.childNodes[i].setAttribute('row', (Math.floor(i/z)));
-        boardDiv.childNodes[i].setAttribute('col', (i%z));
-    }
-}
-// refactor... hmm
-const clearRoute = () => {
-    switch (move.piece) {
-        case 'pawn':
-            if (document.querySelector(`[col="${move.from.col}"][row="${move.from.row + 1}"]`).childNodes.length) return false;
-            else return true;
-            break;
-        case 'rook':
-            if (move.from.row == move.to.row) {
-                if (move.from.col < move.to.col) {
-                    for (let i = 1 + move.from.col; i < move.to.col; i++) {
-                        if (document.querySelector(`[col="${i}"][row="${move.from.row}"]`).childNodes.length) return false;
-                    }
-                } else if (move.from.col > move.to.col) {
-                    for (let i = 1 + move.to.col; i < move.from.col; i++) {
-                        if (document.querySelector(`[col="${i}"][row="${move.from.row}"]`).childNodes.length) return false;
-                    }
-                }
-            }
-            else if (move.from.col == move.to.col) {
-                if (move.from.row < move.to.row) {
-                    for (let i = 1 + move.from.row; i < move.to.row; i++) {
-                        if (document.querySelector(`[col="${move.from.col}"][row="${i}"]`).childNodes.length) return false;
-                    }
-                } else if (move.from.row > move.to.row) {
-                    for (let i = 1 + move.to.row; i < move.from.row; i++) {
-                        if (document.querySelector(`[col="${move.from.col}"][row="${i}"]`).childNodes.length) return false;
-                    }
-                }
-            }
-            return true;
-            break;
-        case 'bishop':
-            if (move.from.row < move.to.row && move.from.col < move.to.col) {
-                for(let i = 1; move.from.row + i < move.to.row; i++) {
-                    if (document.querySelector(`[col="${move.from.col + i}"][row="${move.from.row + i}"]`).childNodes.length) return false;
-                }
-            } else if (move.from.row < move.to.row && move.from.col > move.to.col) {
-                for (let i = 1; move.from.row + i < move.to.row; i++) {
-                    if (document.querySelector(`[col="${move.from.col - 1}"][row="${move.from.row + i}"]`).childNodes.length) return false;
-                }
-            } else if (move.from.row > move.to.row && move.from.col < move.to.col) {
-                for (let i = 1; move.to.row + i < move.from.row; i++) {
-                    if (document.querySelector(`[col="${move.from.col + i}"][row="${move.from.row - i}"]`).childNodes.length) return false;
-                }
-            } else if (move.from.row > move.to.row && move.from.col > move.to.col) {
-                for (let i = 1; move.to.row + i < move.from.row; i++) {
-                    if (document.querySelector(`[col="${move.from.col - i}"][row="${move.from.row - i}"]`).childNodes.length) return false;
-                }
-            }
-            return true;
-            break;
-        case 'queen':
+board.addEventListener('click', handleUserTurn);
 
-            if (move.from.col < move.to.col && move.from.row < move.to.row) {
-                console.log('1');
-                for (let i = 1; move.from.col + i < move.to.col; i++) {
-                    if (document.querySelector(`[col="${move.from.col + i}"][row="${move.from.row + i}"]`).childNodes.length) return false;
-                }
-            } else if (move.from.col < move.to.col && move.from.row == move.to.row) {
-                console.log('2');
-                for (let i = 1; move.from.col + i < move.to.col; i++) {
-                    if (document.querySelector(`[col="${move.from.col + i}"][row="${move.from.row}"]`).childNodes.length) return false;
-                }
-            } else if (move.from.col < move.to.col && move.from.row > move.to.row) {
-                console.log('3');
-                for (let i = 1; move.from.col + i < move.to.col; i++) {
-                    if (document.querySelector(`[col="${move.from.col + i}"][row="${move.from.row - i}"]`).childNodes.length) return false;
-                }
-            } else if (move.from.col > move.to.col && move.from.row < move.to.row) {
-                console.log('4');
-                for (let i = 1; move.from.col - i > move.to.col; i++) {
-                    if (document.querySelector(`[col="${move.from.col - i}"][row="${move.from.row + i}"]`).childNodes.length) return false;
-                }
-            } else if (move.from.col > move.to.col && move.from.row > move.to.row) {
-                console.log('5');
-                for (let i = 1; move.from.col - i > move.to.col; i++) {
-                    if (document.querySelector(`[col="${move.from.col - i}"][row="${move.from.row - i}"]`).childNodes.length) return false;
-                }
-            } else if (move.from.col > move.to.col && move.from.row == move.to.row) {
-                console.log('6');
-                for (let i = 1; move.from.col - i > move.to.col; i++) {
-                    if (document.querySelector(`[col="${move.from.col - i}"][row="${move.from.row}"]`).childNodes.length) return false;
-                }
-            } else if (move.from.col == move.to.col && move.from.row < move.to.row) {
-                console.log('7');
-                for (let i = 1; move.from.row + i < move.to.row; i++) {
-                    if (document.querySelector(`[col="${move.from.col}"][row="${move.from.row + i}"]`).childNodes.length) return false;
-                }
-            } else if (move.from.col == move.to.col && move.from.row > move.to.row) {
-                console.log('8');
-                for (let i = 1; move.from.row - i > move.to.row; i++) {
-                    if (document.querySelector(`[col="${move.from.col}"][row="${move.from.row - i}"]`).childNodes.length) return false;
-                }
-            }
-            return true;
-            break;
-    }
-    return;
-}
-// working
-const checkCheck = (movingKing, defendKing) => {
-    console.log('checking check')
-
-
-    // it is possible to put yourself in check... check both sides
-    // it is also possible that the piece moved isn't neccessarily the new piece that puts in check
-    // therefore this needs to check piece moved to and from for moving side and king for both sides
-    //
-    // if you put yourself in check prevent move completely
-    //
-    // should make variable to always track both kings
-    //
-    // limits
-    // moving side king check depends on moveFrom
-    // defending side king check depends on from and to
-
-    // if (diaginal) if row and col ==
-    // else if (straight) if row or col ==
-
-    if (movingKing.getAttribute('row') == move.from.row || 
-    movingKing.getAttribute('col') == move.from.col) {
-
-        console.log('rook');
-
-    } else if (Math.abs(movingKing.getAttribute('row') - move.from.row) ==
-    Math.abs(movingKing.getAttribute('col') - move.from.col)) {
-        if (move.from.row < movingKing.getAttribute('row') && move.from.col < movingKing.getAttribute('col')) {
-            for (let i = movingKing.getAttribute('row') - 1; i >= 0; i--) {
-                if (document.querySelector(`[col="${i}"][row="${i}"]`).childNodes.length) console.log(document.querySelector(`[col="${i}"][row="${i}"]`).childNodes)
-            }
-        } else if (move.from.row < movingKing.getAttribute('row') && move.from.col > movingKing.getAttribute('col')) {
-
-        } else if (move.from.row > movingKing.getAttribute('row') && move.from.col < movingKing.getAttribute('col')) {
-            for (let i = parseInt(movingKing.getAttribute('row')) + 1; i <= 8; i++) {
-                console.log(i, i * -1)
-                // ^ doesn't work
-                //if (document.querySelector(`[col="${i * -1}"][row="${i}"]`).childNodes.length) console.log(document.querySelector(`[col="${i * -1}"][row="${i}"]`).firstChild)
-            }
-        } else if (move.from.row > movingKing.getAttribute('row') && move.from.col > movingKing.getAttribute('col')) {
-
-        }
-        console.log('bishop');
-    }
-
-
-}
-const mateCheck = () => {
-
-}
-
-drawBoard();
+// Initialize the board
+fillBoard();
